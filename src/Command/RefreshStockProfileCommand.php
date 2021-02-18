@@ -4,23 +4,30 @@ namespace App\Command;
 
 use App\Entity\Stock;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Http\YahooFinanceApiClientInterface;
+use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Serializer\Encoder\XmlEncoder;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 
 class RefreshStockProfileCommand extends Command
 {
     protected static $defaultName = 'app:refresh-stock-profile';
+    private SerializerInterface $serializer;
 
-    private EntityManagerInterface $entityManager;
-
-    public function __construct(EntityManagerInterface $entityManager)
+    public function __construct(
+        private EntityManagerInterface $entityManager, 
+        private YahooFinanceApiClientInterface $yahooFinanceApiClient)
     {
-        $this->entityManager = $entityManager;
         parent::__construct();
+        $encoders = [new XmlEncoder(), new JsonEncoder()];
+        $normalizers = [new ObjectNormalizer()];
+        $this->serializer = new Serializer($normalizers, $encoders);
     }
 
     protected function configure()
@@ -34,15 +41,29 @@ class RefreshStockProfileCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $stock = new Stock();
-        $stock->setCurrency('USD');
-        $stock->setExchangeName('NasdaqGS');
-        $stock->setSymbol('AMZN');
-        $stock->setShortName('Amazon.com, Inc.');
-        $stock->setRegion('US');
-        $stock->setPrice(100);
-        $stock->setPreviousClose(100);
-        $stock->setPriceChange(0);
+        // 1. Ping Yahoo API and grab the response (a stock profile) ['statusCode' => $statusCode, 'content' => $someJsonContent]
+        $stockProfile = $this->yahooFinanceApiClient
+                            ->fetchStockProfile($input->getArgument('symbol'), $input->getArgument('region'));
+
+        if ($stockProfile['statusCode'] !== 200) {
+            // handle non 200 status code responses
+        }
+
+        // dd($stockProfile['content']);
+        // 2b. Use the stock profile to create a record if it doesn't exist
+        $stock = $this->serializer->deserialize($stockProfile['content'], Stock::class, 'json');
+
+
+        // $stock = new Stock();
+        // $stock->setCurrency($stockProfile->currency);
+        // $stock->setExchangeName($stockProfile->exchangeName);
+        // $stock->setSymbol($stockProfile->symbol);
+        // $stock->setShortName($stockProfile->shortName);
+        // $stock->setRegion($stockProfile->region);
+        // $stock->setPrice($stockProfile->price);
+        // $stock->setPreviousClose($stockProfile->$previousClose);
+        // $priceChange = $stockProfile->price - $stockProfile->previousClose;
+        // $stock->setPriceChange($priceChange);
 
         $this->entityManager->persist($stock);
         $this->entityManager->flush();

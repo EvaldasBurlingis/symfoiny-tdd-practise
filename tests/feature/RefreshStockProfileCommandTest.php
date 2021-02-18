@@ -3,34 +3,14 @@
 namespace App\Tests\feature;
 
 use App\Entity\Stock;
-use App\Tests\DatabasePrimer;
+use App\Tests\DatabaseDependantTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-class RefreshStockProfileCommandTest extends KernelTestCase
+class RefreshStockProfileCommandTest extends DatabaseDependantTestCase
 {
-    private $entityManager;
-
-    protected function setUp(): void
-    {
-        $kernel = self::bootKernel();
-
-        DatabasePrimer::prime($kernel);
-        
-        $this->entityManager = $kernel->getContainer()->get('doctrine')->getManager();
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        $this->entityManager->close();
-        $this->entityManager = 0;
-    }
-
     /** @test */
-    public function theRefreshStockProfileCommandBehavesCorrectlyIfWhenStockRecordDoesNotExist()
+    public function theRefreshStockProfileCommandBehavesCorrectlyWhenAStockDoesNotExist()
     {
         // Setup
         $application = new Application(self::$kernel);
