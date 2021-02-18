@@ -4,7 +4,7 @@ namespace App\Command;
 
 use App\Entity\Stock;
 use Doctrine\ORM\EntityManagerInterface;
-use App\Http\YahooFinanceApiClientInterface;
+use App\Http\FinanceApiClientInterface;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -22,7 +22,7 @@ class RefreshStockProfileCommand extends Command
 
     public function __construct(
         private EntityManagerInterface $entityManager, 
-        private YahooFinanceApiClientInterface $yahooFinanceApiClient)
+        private financeApiClientInterface $financeApiClient)
     {
         parent::__construct();
         $encoders = [new XmlEncoder(), new JsonEncoder()];
@@ -42,7 +42,7 @@ class RefreshStockProfileCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         // 1. Ping Yahoo API and grab the response (a stock profile) ['statusCode' => $statusCode, 'content' => $someJsonContent]
-        $stockProfile = $this->yahooFinanceApiClient
+        $stockProfile = $this->financeApiClient
                             ->fetchStockProfile($input->getArgument('symbol'), $input->getArgument('region'));
 
         if ($stockProfile['statusCode'] !== 200) {

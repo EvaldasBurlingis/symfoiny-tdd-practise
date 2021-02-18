@@ -4,19 +4,19 @@ namespace App\Tests\integration;
 
 use App\Tests\DatabaseDependantTestCase;
 
-class YahooFinanceApiClientTest extends DatabaseDependantTestCase
+class FinanceApiClientTest extends DatabaseDependantTestCase
 {
     /**
      * @test
      * @group integration
      */
-    public function theYahooFinanceApiClientReturnsTheCorrectData()
+    public function theFinanceApiClientReturnsTheCorrectData()
     {
         // Setup
-        $yahooFinanceApiClient = self::$kernel->getContainer()->get('yahoo-finance-api-client');
+        $financeApiClient = self::$kernel->getContainer()->get('finance-api-client');
 
         // Do something
-        $response = $yahooFinanceApiClient->fetchStockProfile('AMZN', 'US');
+        $response = $financeApiClient->fetchStockProfile('AMZN', 'US');
 
         $stockProfile = json_decode($response['content']);
 

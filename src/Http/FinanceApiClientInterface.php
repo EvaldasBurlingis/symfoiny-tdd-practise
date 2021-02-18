@@ -2,7 +2,7 @@
 
 namespace App\Http;
 
-interface YahooFinanceApiClientInterface
+interface FinanceApiClientInterface
 {
     public function fetchStockProfile(string $symbol, string $region) : array;
 }

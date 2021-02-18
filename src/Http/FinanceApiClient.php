@@ -4,7 +4,7 @@ namespace App\Http;
 
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-class YahooFinanceApiClient implements YahooFinanceApiClientInterface
+class FinanceApiClient implements FinanceApiClientInterface
 {
     private const URL = 'https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-profile';
     private const X_RAPID_API_HOST = 'apidojo-yahoo-finance-v1.p.rapidapi.com';
