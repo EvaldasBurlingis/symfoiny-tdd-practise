@@ -45,13 +45,13 @@ class RefreshStockProfileCommand extends Command
         $stockProfile = $this->financeApiClient
                             ->fetchStockProfile($input->getArgument('symbol'), $input->getArgument('region'));
 
-        if ($stockProfile['statusCode'] !== 200) {
+        if ($stockProfile->getStatusCode() !== 200) {
             // handle non 200 status code responses
         }
 
-        // dd($stockProfile['content']);
+        // dd($stockProfile->getContent());
         // 2b. Use the stock profile to create a record if it doesn't exist
-        $stock = $this->serializer->deserialize($stockProfile['content'], Stock::class, 'json');
+        $stock = $this->serializer->deserialize($stockProfile->getContent(), Stock::class, 'json');
 
 
         // $stock = new Stock();

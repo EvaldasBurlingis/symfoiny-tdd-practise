@@ -2,9 +2,10 @@
 
 namespace App\Http;
 
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-class FinanceApiClient implements FinanceApiClientInterface
+class YahooFinanceApiClient implements FinanceApiClientInterface
 {
     private const URL = 'https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-profile';
     private const X_RAPID_API_HOST = 'apidojo-yahoo-finance-v1.p.rapidapi.com';
@@ -17,7 +18,7 @@ class FinanceApiClient implements FinanceApiClientInterface
         $this->rapidApiKey = $rapidApiKey;
     }
 
-    public function fetchStockProfile(string $symbol, string $region): array
+    public function fetchStockProfile(string $symbol, string $region): JsonResponse
     {
         $response = $this->httpClient->request('GET', self::URL, [
             'query' => [
@@ -48,9 +49,6 @@ class FinanceApiClient implements FinanceApiClientInterface
             'priceChange'   => $stockProfile->regularMarketPrice->raw - $stockProfile->regularMarketPreviousClose->raw
         ];
 
-        return [
-            'statusCode' => 200,
-            'content'    => json_encode($stockProfileAsArray)
-        ];
+        return new JsonResponse($stockProfileAsArray, 200);
     }
 }
