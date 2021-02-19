@@ -11,7 +11,7 @@ use Symfony\Bundle\FrameworkBundle\Console\Application;
 class RefreshStockProfileCommanddTest extends DatabaseDependantTestCase
 {
     /** @test */
-    public function theRefreshStockProfileCommandBehavesCorrectlyWhenAStockDoesNotExist()
+    public function theRefreshStockProfileCommandCreatesNewRecordsCorrectly()
     {
         // Setup
         $application = new Application(self::$kernel);
@@ -21,7 +21,8 @@ class RefreshStockProfileCommanddTest extends DatabaseDependantTestCase
         $commandTester = new CommandTester($command);
 
         // set up fake return content
-        FakeYahooFinanceApiClient::$content = '{"symbol":"AMZN","shortName":"Amazon.com, Inc.","region":"US","exchangeName":"NasdaqGS","currency":"USD","price":3332.32,"previousClose":3308.64,"priceChange":23.68}';
+        FakeYahooFinanceApiClient::$content = '{"symbol":"AMZN","shortName":"Amazon.com, Inc.","region":"US","exchangeName":"NasdaqGS","currency":"USD",
+            "price":3332.32,"previousClose":3308.64,"priceChange":23.68}';
 
         // Do something
         $commandTester->execute([
@@ -42,6 +43,57 @@ class RefreshStockProfileCommanddTest extends DatabaseDependantTestCase
         $this->assertGreaterThan(50, $stock->getPrice());
         $this->assertGreaterThan(50, $stock->getPreviousClose());
         $this->assertStringContainsString('Amazon.com, Inc. has been saved/updated.', $commandTester->getDisplay());
+    }
+
+    /** @test */
+    public function theRefreshStockProfileCommandUpdatesExistingRecordsCorrectly()
+    {
+        // Set up
+        $stock = new Stock();
+        $stock->setSymbol('AMZN');
+        $stock->setRegion('US');
+        $stock->setExchangeName('NasdaqGS');
+        $stock->setCurrency('USD');
+        $stock->setPreviousClose(3000);
+        $stock->setPrice(3100);
+        $stock->setPriceChange(100);
+        $stock->setShortName('Amazon.com, Inc.');
+
+        $this->entityManager->persist($stock);
+        $this->entityManager->flush();
+
+        $stockId = $stock->getId();
+
+        $application = new Application(self::$kernel);
+
+        $command = $application->find('app:refresh-stock-profile');
+
+        $commandTester = new CommandTester($command);
+
+        FakeYahooFinanceApiClient::$statusCode = 200;
+        FakeYahooFinanceApiClient::setContent(['previous_close' => 3308.64, 'price' => 3332.32, 'price_change' => 23.68]);
+
+        // Do something
+        $commandResponseStatus = $commandTester->execute([
+            'symbol' => 'AMZN', 
+            'region' => 'US'
+        ]);
+
+        // Make assertions
+        $stockRepository = $this->entityManager->getRepository(Stock::class);
+        $stock = $stockRepository->find($stockId);
+
+        $this->assertEquals(3308.64, $stock->getPreviousClose());
+        $this->assertEquals(3332.32, $stock->getPrice());
+        $this->assertEquals(23.68, $stock->getPriceChange());
+        $stockRecordCount = $stockRepository->createQueryBuilder('stock')
+        ->select('count(stock.id)')
+        ->getQuery()
+        ->getSingleScalarResult();
+
+        // Make assertions
+        $this->assertEquals(0, $commandResponseStatus);
+        $this->assertEquals(1, $stockRecordCount);
     }
 
     /** @test */
