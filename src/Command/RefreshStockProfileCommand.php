@@ -41,32 +41,21 @@ class RefreshStockProfileCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // 1. Ping Yahoo API and grab the response (a stock profile) ['statusCode' => $statusCode, 'content' => $someJsonContent]
         $stockProfile = $this->financeApiClient
                             ->fetchStockProfile($input->getArgument('symbol'), $input->getArgument('region'));
 
         if ($stockProfile->getStatusCode() !== 200) {
-            // handle non 200 status code responses
+            $output->writeln($stockProfile->getContent());
+
+            return Command::FAILURE;
         }
 
-        // dd($stockProfile->getContent());
-        // 2b. Use the stock profile to create a record if it doesn't exist
         $stock = $this->serializer->deserialize($stockProfile->getContent(), Stock::class, 'json');
-
-
-        // $stock = new Stock();
-        // $stock->setCurrency($stockProfile->currency);
-        // $stock->setExchangeName($stockProfile->exchangeName);
-        // $stock->setSymbol($stockProfile->symbol);
-        // $stock->setShortName($stockProfile->shortName);
-        // $stock->setRegion($stockProfile->region);
-        // $stock->setPrice($stockProfile->price);
-        // $stock->setPreviousClose($stockProfile->$previousClose);
-        // $priceChange = $stockProfile->price - $stockProfile->previousClose;
-        // $stock->setPriceChange($priceChange);
 
         $this->entityManager->persist($stock);
         $this->entityManager->flush();
+
+        $output->writeln($stock->getShortName() . ' has been saved/updated.');
         
         return Command::SUCCESS;
     }

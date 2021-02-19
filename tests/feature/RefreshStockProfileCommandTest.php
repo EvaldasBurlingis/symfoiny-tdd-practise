@@ -41,5 +41,40 @@ class RefreshStockProfileCommanddTest extends DatabaseDependantTestCase
         $this->assertSame('US', $stock->getRegion());
         $this->assertGreaterThan(50, $stock->getPrice());
         $this->assertGreaterThan(50, $stock->getPreviousClose());
+        $this->assertStringContainsString('Amazon.com, Inc. has been saved/updated.', $commandTester->getDisplay());
+    }
+
+    /** @test */
+    public function non200StatusCodeResponsesAreHandledCorrectly()
+    {
+        // Setup
+        $application = new Application(self::$kernel);
+
+        $command = $application->find('app:refresh-stock-profile');
+
+        $commandTester = new CommandTester($command);
+
+        FakeYahooFinanceApiClient::$statusCode = 500;
+        FakeYahooFinanceApiClient::$content = 'Finance API Client Error';
+
+        // Do something
+
+        $commandResponseStatus = $commandTester->execute([
+            'symbol' => 'AMZN', 
+            'region' => 'US'
+        ]);
+
+        // Make assertions
+        $stockRepository = $this->entityManager->getRepository(Stock::class);
+
+        $stockRecordCount = $stockRepository->createQueryBuilder('stock')
+                                            ->select('count(stock.id)')
+                                            ->getQuery()
+                                            ->getSingleScalarResult();
+
+        // Make assertions
+        $this->assertEquals(1, $commandResponseStatus);
+        $this->assertEquals(0, $stockRecordCount);
+        $this->assertStringContainsString('Finance API Client Error', $commandTester->getDisplay());
     }
 }
